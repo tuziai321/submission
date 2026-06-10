@@ -1,52 +1,56 @@
-# Computing 2 Coursework Submission.
-**CID**: [YOUR CID]
+# Realmline
 
-This is the submission template for your Computing 2 Applications coursework submission.
+**CID:** 02601389
 
-## Checklist
-### Install dependencies locally
-This template relies on a a few packages from the Node Package Manager, npm.
-To install them run the following commands in the terminal.
-```properties
+Realmline is a two-player, turn-based territory board game. Players place their remaining pieces, move one piece up to two orthogonal squares, then build a permanent wall beside the piece they moved. Walls divide the board into territories, and a territory scores only when it contains pieces from one player.
+
+I designed the game around a simple idea: the board should start open and slowly become more strategic as players add walls. The main tension is deciding whether to claim territory immediately or block the other player from making a larger region later.
+
+## Project Structure
+
+- `web-app/Module.js` defines the game module API and implementation. Its exported functions are documented with JSDoc and operate on game state objects.
+- `web-app/tests/wall-go.test.js` contains the unit tests for the game module.
+- `web-app/index.html` provides the web page structure.
+- `web-app/default.css` provides the styling.
+- `web-app/main.js` connects the browser interface to the game module.
+- `docs/` contains the generated JSDoc documentation.
+
+The game rules are kept in `Module.js` so they can be tested separately from the browser interface. The web app calls this module rather than re-implementing the rules in the UI code.
+
+## Testing Focus
+
+The tests concentrate on the original two-player rules: piece placement order, legal movement, wall placement, territory scoring, draw handling, and game-ending conditions. These are the behaviours most likely to break if the rules change, so they are the ones I wanted the test file to describe clearly.
+
+## Install
+
+Install the project dependencies with:
+
+```powershell
 npm install
 ```
-These won't be uploaded to your repository because of the `.gitignore`.
-I'll run the same commands when I download your repos.
 
-### Game Module – API
-*You will produce an API specification, i.e. a list of function names and their signatures, for a Javascript module that represents the state of your game and the operations you can perform on it that advances the game or provides information.*
+The `node_modules` directory is ignored by Git and should not be uploaded to the repository.
 
-- [ ] Include a `.js ` module file in `/web-app` containing the API using `jsdoc`.
-- [ ] Update `/jsdoc.json` to point to this module in `.source.include` (line 7)
-- [ ] Compile jsdoc using the run configuration `Generate Docs`
-- [ ] Check the generated docs have compiled correctly.
+## Run Checks
 
-### Game Module – Implementation
-*You will implement, in Javascript, the module you specified above. Such that your game can be simulated in code, e.g. in the debug console.*
+Run the unit tests:
 
-- [ ] The file above should be fully implemented.
+```powershell
+npm test
+```
 
-### Unit Tests – Specification
-*For the Game module API you have produced, write a set of unit tests descriptions that specify the expected behaviour of one aspect of your API, e.g. you might pick the win condition, or how the state changes when a move is made.*
+Run the linter:
 
-- [ ] Write unit test definitions in `/web-app/tests`.
-- [ ] Check the headings appear in the Testing sidebar.
+```powershell
+npm run lint
+```
 
-### Unit Tests – Implementation
-*Implement in code the unit tests specified above.*
+Regenerate the JSDoc documentation:
 
-- [ ] Implement the tests above.
+```powershell
+npm run docs
+```
 
-### Web Application
-*Produce a web application that allows a user to interface with your game module.*
+## Play
 
-- Implement in `/web-app`
-  - [ ] `index.html`
-  - [ ] `default.css`
-  - [ ] `main.js`
-  - [ ] Any other files you need to include.
-
-### Finally
-- [ ] Push to GitHub.
-- [ ] Sync the changes.
-- [ ] Check submission on GitHub website.
+Open `web-app/index.html` in a browser to play the game.

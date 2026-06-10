@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>Module.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-WallGo.html">WallGo</a><ul class='members'><li data-type='member'><a href="module-WallGo.html#.DIRECTIONS">DIRECTIONS</a></li><li data-type='member'><a href="module-WallGo.html#.PLAYERS">PLAYERS</a></li></ul><ul class='methods'><li data-type='method'><a href="module-WallGo.html#.canPlaceWall">canPlaceWall</a></li><li data-type='method'><a href="module-WallGo.html#.createInitialState">createInitialState</a></li><li data-type='method'><a href="module-WallGo.html#.getGameSummary">getGameSummary</a></li><li data-type='method'><a href="module-WallGo.html#.getLargestTerritory">getLargestTerritory</a></li><li data-type='method'><a href="module-WallGo.html#.getLegalMoves">getLegalMoves</a></li><li data-type='method'><a href="module-WallGo.html#.getPendingPlacement">getPendingPlacement</a></li><li data-type='method'><a href="module-WallGo.html#.getPieceAt">getPieceAt</a></li><li data-type='method'><a href="module-WallGo.html#.getRegions">getRegions</a></li><li data-type='method'><a href="module-WallGo.html#.getScore">getScore</a></li><li data-type='method'><a href="module-WallGo.html#.getUnclaimedTerritory">getUnclaimedTerritory</a></li><li data-type='method'><a href="module-WallGo.html#.getWinner">getWinner</a></li><li data-type='method'><a href="module-WallGo.html#.isGameOver">isGameOver</a></li><li data-type='method'><a href="module-WallGo.html#.movePiece">movePiece</a></li><li data-type='method'><a href="module-WallGo.html#.placePiece">placePiece</a></li><li data-type='method'><a href="module-WallGo.html#.placeWall">placeWall</a></li></ul></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">Module.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Original two-player Wall-Go game logic.
+ *
+ * The game uses a 7 by 7 board. Red and Blue each control four pieces. Two
+ * pieces per player begin in fixed starting positions, then the remaining
+ * pieces are placed in the order Red, Blue, Blue, Red. During normal play a
+ * player moves one piece up to two orthogonal steps, including zero steps,
+ * then builds one permanent wall beside that moved piece.
+ *
+ * @module WallGo
+ */
+
+/** @typedef {"Red" | "Blue"} Player */
+/** @typedef {"placement" | "move" | "wall" | "finished"} Phase */
+/** @typedef {"top" | "right" | "bottom" | "left"} DirectionName */
+
+/**
+ * @typedef {object} Position
+ * @property {number} row Board row, counted from 0 at the top.
+ * @property {number} col Board column, counted from 0 at the left.
+ */
+
+/**
+ * @typedef {object} Piece
+ * @property {string} id Stable piece identifier.
+ * @property {Player} player Owner of the piece.
+ * @property {number} row Current row.
+ * @property {number} col Current column.
+ */
+
+/**
+ * @typedef {object} WallSet
+ * @property {boolean} top Whether the cell has a wall on its top edge.
+ * @property {boolean} right Whether the cell has a wall on its right edge.
+ * @property {boolean} bottom Whether the cell has a wall on its bottom edge.
+ * @property {boolean} left Whether the cell has a wall on its left edge.
+ */
+
+/**
+ * @typedef {object} PendingPiece
+ * @property {string} id Piece identifier to place.
+ * @property {Player} player Player who places this piece.
+ */
+
+/**
+ * @typedef {object} GameState
+ * @property {number} size Width and height of the square board.
+ * @property {Player} currentPlayer Player whose turn it is.
+ * @property {Phase} phase Current game phase.
+ * @property {Piece[]} pieces Pieces currently on the board.
+ * @property {PendingPiece[]} placementQueue Pieces still waiting to be placed.
+ * @property {string | undefined} lastMovedPieceId Piece that must build a wall.
+ * @property {WallSet[][]} walls Wall data for every cell.
+ * @property {object[][]} wallOwners Player who built each wall edge.
+ */
+
+/**
+ * @typedef {object} Region
+ * @property {Position[]} cells Cells connected without crossing walls.
+ * @property {Player[]} owners Players with pieces in this region.
+ */
+
+/**
+ * @typedef {object} GameSummary
+ * @property {Player} turn Player whose turn is shown in the interface.
+ * @property {Phase} phase Current game phase.
+ * @property {PendingPiece | undefined} pendingPlacement Piece waiting to be placed, if any.
+ * @property {{Red: number, Blue: number}} score Current territory score.
+ * @property {number} unclaimedTerritory Cells that cannot currently score for either player.
+ * @property {Player | "Draw" | undefined} winner Winner, draw, or undefined while play continues.
+ */
+
+/**
+ * @typedef {object} Direction
+ * @property {DirectionName} name Direction name.
+ * @property {number} dr Row offset.
+ * @property {number} dc Column offset.
+ * @property {DirectionName} opposite Opposite direction name.
+ */
+
+/**
+ * Board directions used for movement and wall edges.
+ *
+ * @type {Direction[]}
+ */
+export const DIRECTIONS = [
+  { name: "top", dr: -1, dc: 0, opposite: "bottom" },
+  { name: "right", dr: 0, dc: 1, opposite: "left" },
+  { name: "bottom", dr: 1, dc: 0, opposite: "top" },
+  { name: "left", dr: 0, dc: -1, opposite: "right" }
+];
+
+export const DEFAULT_BOARD_SIZE = 7;
+
+/**
+ * Players in the original two-player game.
+ *
+ * @type {Player[]}
+ */
+export const PLAYERS = ["Red", "Blue"];
+
+/**
+ * Create the original two-player Wall-Go starting state.
+ *
+ * @returns {GameState} A fresh game with fixed pieces placed and placement phase active.
+ */
+export function createInitialState() {
+  return {
+    size: DEFAULT_BOARD_SIZE,
+    currentPlayer: "Red",
+    phase: "placement",
+    pieces: [
+      { id: "R1", player: "Red", row: 1, col: 1 },
+      { id: "R2", player: "Red", row: 5, col: 5 },
+      { id: "B1", player: "Blue", row: 1, col: 5 },
+      { id: "B2", player: "Blue", row: 5, col: 1 }
+    ],
+    placementQueue: [
+      { id: "R3", player: "Red" },
+      { id: "B3", player: "Blue" },
+      { id: "B4", player: "Blue" },
+      { id: "R4", player: "Red" }
+    ],
+    lastMovedPieceId: undefined,
+    walls: createEmptyWalls(DEFAULT_BOARD_SIZE),
+    wallOwners: createEmptyWallOwners(DEFAULT_BOARD_SIZE)
+  };
+}
+
+/**
+ * Return the piece at a board position.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @param {Position} position Position to query.
+ * @returns {Piece | undefined} The piece at the position, if one exists.
+ */
+export function getPieceAt(state, position) {
+  return state.pieces.find((piece) => samePosition(piece, position));
+}
+
+/**
+ * Return the piece waiting to be placed next.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @returns {PendingPiece | undefined} Pending placement, if the game is still placing pieces.
+ */
+export function getPendingPlacement(state) {
+  return state.phase === "placement" ? state.placementQueue[0] : undefined;
+}
+
+/**
+ * Place the next pending piece on an empty board cell.
+ *
+ * @param {GameState} state Current game state.
+ * @param {Position} position Empty position for the next piece.
+ * @returns {GameState} New state after the placement.
+ * @throws {Error} If placement is not currently legal.
+ */
+export function placePiece(state, position) {
+  const pending = getPendingPlacement(state);
+  if (!pending) throw new Error("There is no piece waiting to be placed.");
+  if (!isInside(state, position) || getPieceAt(state, position)) {
+    throw new Error("The pending piece must be placed on an empty board cell.");
+  }
+
+  const placementQueue = state.placementQueue.slice(1);
+  const pieces = [...state.pieces, { ...pending, row: position.row, col: position.col }];
+
+  return {
+    ...state,
+    pieces,
+    placementQueue,
+    phase: placementQueue.length === 0 ? "move" : "placement",
+    currentPlayer: placementQueue.length === 0 ? "Red" : placementQueue[0].player
+  };
+}
+
+/**
+ * Return legal destinations for the current player's selected piece.
+ *
+ * Legal destinations include the piece's current square, representing a
+ * zero-step move. Other destinations must be one or two squares in a single
+ * orthogonal direction without crossing walls, pieces, or board edges.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @param {string} pieceId Piece to move.
+ * @returns {Position[]} Reachable destinations.
+ */
+export function getLegalMoves(state, pieceId) {
+  const piece = state.pieces.find((candidate) => candidate.id === pieceId);
+  if (!piece || piece.player !== state.currentPlayer || state.phase !== "move") return [];
+
+  return [
+    { row: piece.row, col: piece.col },
+    ...DIRECTIONS.flatMap((direction) => getMovesInDirection(state, piece, direction, 2))
+  ].filter((destination) => hasBuildableWallAt(state, destination));
+}
+
+/**
+ * Move one current-player piece, then enter the wall-building phase.
+ *
+ * @param {GameState} state Current game state.
+ * @param {string} pieceId Piece to move.
+ * @param {Position} destination Destination cell, including the current cell for no movement.
+ * @returns {GameState} New state in wall phase.
+ * @throws {Error} If the requested move is not legal.
+ */
+export function movePiece(state, pieceId, destination) {
+  const isLegal = getLegalMoves(state, pieceId).some((move) => samePosition(move, destination));
+  if (!isLegal) throw new Error("That piece cannot move to the requested destination.");
+
+  return {
+    ...state,
+    phase: "wall",
+    lastMovedPieceId: pieceId,
+    pieces: state.pieces.map((piece) =>
+      piece.id === pieceId ? { ...piece, row: destination.row, col: destination.col } : piece
+    )
+  };
+}
+
+/**
+ * Return true when the current player may build a wall on the selected edge.
+ *
+ * In the original two-player rules, the wall must be beside the piece just
+ * moved this turn. Walls are permanent and may only be placed on open edges
+ * between neighbouring board cells.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @param {Position} position Cell that owns the selected edge.
+ * @param {DirectionName} side Edge where the wall would be placed.
+ * @returns {boolean} Whether the wall placement is legal.
+ */
+export function canPlaceWall(state, position, side) {
+  if (state.phase !== "wall" || !state.lastMovedPieceId || !isInside(state, position)) return false;
+  const direction = getDirection(side);
+  if (!direction || state.walls[position.row][position.col][side]) return false;
+
+  const movedPiece = state.pieces.find((piece) => piece.id === state.lastMovedPieceId);
+  if (!movedPiece || !samePosition(movedPiece, position)) return false;
+
+  return isInside(state, { row: position.row + direction.dr, col: position.col + direction.dc });
+}
+
+/**
+ * Build the required wall, then advance the turn or finish the game.
+ *
+ * @param {GameState} state Current game state.
+ * @param {Position} position Cell that owns the selected edge.
+ * @param {DirectionName} side Edge where the wall should be placed.
+ * @returns {GameState} New state after wall placement.
+ * @throws {Error} If the wall placement is not legal.
+ */
+export function placeWall(state, position, side) {
+  if (!canPlaceWall(state, position, side)) throw new Error("That wall cannot be placed there.");
+
+  const direction = getDirection(side);
+  const neighbour = { row: position.row + direction.dr, col: position.col + direction.dc };
+  const walls = state.walls.map((row) => row.map((cell) => ({ ...cell })));
+  const wallOwners = (state.wallOwners ?? createEmptyWallOwners(state.size)).map((row) =>
+    row.map((cell) => ({ ...cell }))
+  );
+
+  walls[position.row][position.col][side] = true;
+  walls[neighbour.row][neighbour.col][direction.opposite] = true;
+  wallOwners[position.row][position.col][side] = state.currentPlayer;
+  wallOwners[neighbour.row][neighbour.col][direction.opposite] = state.currentPlayer;
+
+  const nextState = { ...state, walls, wallOwners, lastMovedPieceId: undefined };
+  return isGameOver(nextState)
+    ? { ...nextState, phase: "finished" }
+    : { ...nextState, phase: "move", currentPlayer: nextPlayer(state.currentPlayer) };
+}
+
+/**
+ * Find all connected board regions without crossing walls.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @returns {Region[]} Connected regions with their owning players.
+ */
+export function getRegions(state) {
+  const visited = new Set();
+  const cells = Array.from({ length: state.size }, (_, row) =>
+    Array.from({ length: state.size }, (_, col) => ({ row, col }))
+  ).flat();
+
+  return cells.reduce((regions, cell) => {
+    if (visited.has(positionKey(cell))) return regions;
+    return [...regions, exploreRegion(state, cell, visited)];
+  }, []);
+}
+
+/**
+ * Calculate territory scores.
+ *
+ * A region scores for a player only when it contains pieces from that player
+ * and no opponent pieces. Empty regions and mixed regions do not score.
+ *
+ * @param {GameState} state Game state to score.
+ * @returns {{Red: number, Blue: number}} Territory score for each player.
+ */
+export function getScore(state) {
+  return getRegions(state).reduce(
+    (score, region) => {
+      if (region.owners.length !== 1) return score;
+      return { ...score, [region.owners[0]]: score[region.owners[0]] + region.cells.length };
+    },
+    { Red: 0, Blue: 0 }
+  );
+}
+
+/**
+ * Count cells not currently controlled by either player.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @returns {number} Cells outside single-player scoring regions.
+ */
+export function getUnclaimedTerritory(state) {
+  const score = getScore(state);
+  return state.size * state.size - score.Red - score.Blue;
+}
+
+/**
+ * Check whether the game has ended.
+ *
+ * The game ends when either all occupied regions are separated by player, or
+ * one player leads by more points than all remaining unclaimed territory, or
+ * the current player has no legal move that can be followed by a wall.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @returns {boolean} Whether the game has ended.
+ */
+export function isGameOver(state) {
+  return (
+    state.phase !== "placement" &amp;&amp;
+    (arePlayersSeparated(state) || isLeadUncatchable(state) || currentPlayerCannotMove(state))
+  );
+}
+
+/**
+ * Determine the winner by total territory, then largest single territory.
+ *
+ * @param {GameState} state Game state to evaluate.
+ * @returns {Player | "Draw" | undefined} Winner, draw, or undefined while the game continues.
+ */
+export function getWinner(state) {
+  if (!isGameOver(state)) return undefined;
+
+  const score = getScore(state);
+  if (score.Red > score.Blue) return "Red";
+  if (score.Blue > score.Red) return "Blue";
+
+  const redLargest = getLargestTerritory(state, "Red");
+  const blueLargest = getLargestTerritory(state, "Blue");
+  if (redLargest > blueLargest) return "Red";
+  if (blueLargest > redLargest) return "Blue";
+  return "Draw";
+}
+
+/**
+ * Return the largest single territory owned by one player.
+ *
+ * @param {GameState} state Game state to inspect.
+ * @param {Player} player Player whose largest territory should be found.
+ * @returns {number} Size of that player's largest territory.
+ */
+export function getLargestTerritory(state, player) {
+  return getRegions(state)
+    .filter((region) => region.owners.length === 1 &amp;&amp; region.owners[0] === player)
+    .reduce((largest, region) => Math.max(largest, region.cells.length), 0);
+}
+
+/**
+ * Return a short summary suitable for the browser interface.
+ *
+ * @param {GameState} state Game state to summarise.
+ * @returns {GameSummary} Current public game information.
+ */
+export function getGameSummary(state) {
+  return {
+    turn: state.currentPlayer,
+    phase: state.phase,
+    pendingPlacement: getPendingPlacement(state),
+    score: getScore(state),
+    unclaimedTerritory: getUnclaimedTerritory(state),
+    winner: getWinner(state)
+  };
+}
+
+function createEmptyWalls(size) {
+  return Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => ({ top: false, right: false, bottom: false, left: false }))
+  );
+}
+
+function createEmptyWallOwners(size) {
+  return Array.from({ length: size }, () => Array.from({ length: size }, () => ({})));
+}
+
+function getMovesInDirection(state, start, direction, remainingSteps) {
+  // Walk one square at a time so a two-step move cannot jump through walls or pieces.
+  if (remainingSteps === 0 || state.walls[start.row][start.col][direction.name]) return [];
+
+  const next = { row: start.row + direction.dr, col: start.col + direction.dc };
+  if (!isInside(state, next) || getPieceAt(state, next)) return [];
+
+  return [next, ...getMovesInDirection(state, next, direction, remainingSteps - 1)];
+}
+
+function hasBuildableWallAt(state, position) {
+  return DIRECTIONS.some((direction) => {
+    const neighbour = { row: position.row + direction.dr, col: position.col + direction.dc };
+    return isInside(state, neighbour) &amp;&amp; !state.walls[position.row][position.col][direction.name];
+  });
+}
+
+function arePlayersSeparated(state) {
+  return getRegions(state).every((region) => region.owners.length &lt;= 1);
+}
+
+function isLeadUncatchable(state) {
+  const score = getScore(state);
+  return Math.abs(score.Red - score.Blue) > getUnclaimedTerritory(state);
+}
+
+function currentPlayerCannotMove(state) {
+  if (state.phase !== "move") return false;
+  return state.pieces
+    .filter((piece) => piece.player === state.currentPlayer)
+    .every((piece) => getLegalMoves(state, piece.id).length === 0);
+}
+
+function exploreRegion(state, start, visited) {
+  // Flood-fill one connected territory, stopping whenever a wall blocks an edge.
+  const queue = [start];
+  const cells = [];
+  const owners = new Set();
+  visited.add(positionKey(start));
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    cells.push(current);
+
+    const piece = getPieceAt(state, current);
+    if (piece) owners.add(piece.player);
+
+    DIRECTIONS
+      .filter((direction) => !state.walls[current.row][current.col][direction.name])
+      .map((direction) => ({ row: current.row + direction.dr, col: current.col + direction.dc }))
+      .filter((cell) => isInside(state, cell))
+      .filter((cell) => !visited.has(positionKey(cell)))
+      .forEach((cell) => {
+        visited.add(positionKey(cell));
+        queue.push(cell);
+      });
+  }
+
+  return { cells, owners: [...owners] };
+}
+
+function isInside(state, position) {
+  return position.row >= 0 &amp;&amp; position.row &lt; state.size &amp;&amp; position.col >= 0 &amp;&amp; position.col &lt; state.size;
+}
+
+function getDirection(side) {
+  return DIRECTIONS.find((direction) => direction.name === side);
+}
+
+function nextPlayer(player) {
+  return player === "Red" ? "Blue" : "Red";
+}
+
+function samePosition(left, right) {
+  return left.row === right.row &amp;&amp; left.col === right.col;
+}
+
+function positionKey(position) {
+  return `${position.row},${position.col}`;
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Jun 09 2026 00:57:58 GMT+0100 (英国夏令时间) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+    <link type="text/css" rel="stylesheet" href="custom.css">
+    
+</body>
+</html>

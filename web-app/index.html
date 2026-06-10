@@ -1,9 +1,135 @@
-<!-- In HTML Comments are written like this -->
-<!-- They can all be removed for your apps -->
-<!doctype html> <!-- This first line tells browsers to expect modern standard html 5 -->
-<html lang="en-gb"> <!-- This is indicates the page is written in British English, useful for accessibility -->
-<meta charset="utf-8"> <!-- This indicates how the file is encoded. utf-8 is standard -->
-<title>Your Web-app Title</title> <!-- All pages need a title, this will be displayed in the browser's title bar -->
-<link rel="stylesheet" href="default.css"> <!-- Import style sheet – default.css -->
-<link rel="icon" href="./assets/favicon.png"> <!-- Import 'Favorites Icon' – favicon.png -->
-<script type="module" src="main.js"></script> <!-- Load the main script. Must be type="module". Have only one of these -->
+<!doctype html>
+<html lang="en-gb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Realmline</title>
+  <link rel="stylesheet" href="default.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <section id="startScreen" class="start-screen" aria-labelledby="start-title">
+      <div class="start-content">
+        <p class="eyebrow">Original two-player board game</p>
+        <h1 id="start-title">Realmline</h1>
+        <button id="startButton" class="start-button" type="button">Start 2 Players</button>
+        <a class="rules-link" href="#gameRules">Game Rules</a>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="game-panel" aria-labelledby="game-title" hidden>
+      <header class="top-bar">
+        <div>
+          <p class="eyebrow">Original 1v1 rules</p>
+          <h1 id="game-title">Realmline</h1>
+        </div>
+        <div class="top-actions">
+          <button id="soundButton" type="button" aria-pressed="false">Sound Off</button>
+          <button id="undoButton" type="button">Undo</button>
+          <button id="resetButton" type="button">Restart</button>
+        </div>
+      </header>
+
+      <div class="status-grid" aria-live="polite">
+        <div>
+          <span class="label">Turn</span>
+          <strong id="turnLabel">Red</strong>
+        </div>
+        <div>
+          <span class="label">Phase</span>
+          <strong id="phaseLabel">Place piece</strong>
+        </div>
+        <div>
+          <span class="label">Territory</span>
+          <strong id="scoreLabel">Red 0 | Blue 0</strong>
+        </div>
+      </div>
+
+      <p id="message" class="message">Red places the third piece.</p>
+      <div id="feedbackPanel" class="feedback-panel" aria-live="polite">
+        <span id="feedbackLead" class="feedback-lead">Territory is still open.</span>
+        <span id="feedbackHint" class="feedback-hint">Build walls to separate your pieces from your opponent.</span>
+      </div>
+      <div id="liveScorePanel" class="live-score-panel" aria-label="Current territory comparison">
+        <div class="live-score-card red-live-score">
+          <span>Red</span>
+          <strong id="liveRedScore">0</strong>
+        </div>
+        <div class="live-score-card blue-live-score">
+          <span>Blue</span>
+          <strong id="liveBlueScore">0</strong>
+        </div>
+        <div class="live-score-bar" aria-hidden="true">
+          <span id="liveRedBar" class="red-bar"></span>
+          <span id="liveBlueBar" class="blue-bar"></span>
+        </div>
+      </div>
+      <ol id="guidePanel" class="guide-panel" aria-label="Game steps">
+        <li data-step="placement">Place your remaining pieces</li>
+        <li data-step="move">Select one of your pieces</li>
+        <li data-step="move">Move 0, 1, or 2 spaces</li>
+        <li data-step="wall">Build a wall</li>
+        <li data-step="finished">Claim territory</li>
+      </ol>
+      <div id="wallControls" class="wall-controls" aria-label="Wall direction controls"></div>
+
+      <div id="board" class="board" tabindex="-1" aria-label="Realmline board"></div>
+
+      <section id="resultPanel" class="result-panel" aria-labelledby="resultTitle" hidden>
+        <div class="result-card">
+          <span id="resultBadge" class="result-badge">Game over</span>
+          <h2 id="resultTitle">Game over</h2>
+          <p id="resultDetail">The winner is decided by territory.</p>
+          <div class="final-score-grid" aria-label="Final score">
+            <div class="final-score red-score">
+              <span>Red</span>
+              <strong id="resultRedScore">0</strong>
+            </div>
+            <div class="final-score blue-score">
+              <span>Blue</span>
+              <strong id="resultBlueScore">0</strong>
+            </div>
+          </div>
+          <div class="score-bar" aria-hidden="true">
+            <span id="resultRedBar" class="red-bar"></span>
+            <span id="resultBlueBar" class="blue-bar"></span>
+          </div>
+          <p id="resultScore">Red 0 | Blue 0</p>
+          <button id="playAgainButton" type="button">Play again</button>
+        </div>
+      </section>
+    </section>
+
+    <section id="gameRules" class="rules-panel" aria-labelledby="rules-title">
+      <h2 id="rules-title">Game Rules</h2>
+      <div class="rules-grid">
+        <article>
+          <h3>1. Place Pieces</h3>
+          <p>Red and Blue begin with two fixed pieces each. The remaining pieces are placed in this order: Red, Blue, Blue, Red.</p>
+        </article>
+        <article>
+          <h3>2. Move</h3>
+          <p>On your turn, choose one of your pieces and move it zero, one, or two squares in a straight orthogonal line.</p>
+        </article>
+        <article>
+          <h3>3. Build a Wall</h3>
+          <p>After moving, build one wall on an open edge beside the piece you moved. Walls are permanent, block future movement, and are coloured by the player who built them.</p>
+        </article>
+        <article>
+          <h3>4. Win Territory</h3>
+          <p>The game ends when each connected region contains pieces from at most one player, when a lead cannot be caught, or when the current player has no legal moves. Single-player regions score territory for that player.</p>
+        </article>
+        <article class="scoring-rule">
+          <h3>5. Scoring</h3>
+          <p>Walls split the board into connected territories. Each cell in a territory is worth 1 point, but it only scores if that territory contains pieces from one player only.</p>
+        </article>
+        <article class="scoring-example">
+          <h3>Scoring Example</h3>
+          <p>If Red walls off a 6-cell area with only Red pieces inside, Red scores 6 points. If a 5-cell area contains both Red and Blue, neither player scores those 5 cells.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

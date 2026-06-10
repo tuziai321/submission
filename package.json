@@ -2,15 +2,19 @@
   "name": "computing-2-submission",
   "type": "module",
   "version": "1.0.0",
-  "description": "",
+  "description": "Realmline turn-based territory board game coursework submission.",
   "main": "web-app/Module.js",
+  "scripts": {
+    "test": "mocha",
+    "docs": "jsdoc -c jsdoc.json",
+    "lint": "eslint web-app/**/*.js"
+  },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "ramda": "^0.32.0"
-  },
   "devDependencies": {
     "docdash": "^2.0.2",
+    "eslint": "^9.39.4",
+    "jsdoc": "^4.0.4",
     "mocha": "^11.7.5"
   }
 }
